@@ -8,7 +8,7 @@ import {
     SmartContract,
 } from 'scrypt-ts'
 
-export class Demo extends SmartContract {
+export class Helloworld extends SmartContract {
     @prop()
     hash: Sha256
 

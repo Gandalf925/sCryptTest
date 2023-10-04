@@ -1,48 +1,21 @@
-import { Demo } from './src/contracts/demo'
-import {
-    bsv,
-    TestWallet,
-    DefaultProvider,
-    sha256,
-    toByteString,
-} from 'scrypt-ts'
+import { Helloworld } from './src/contracts/demo'
+import { getDefaultSigner } from './tests/utils/txHelper'
+import { toByteString, sha256 } from 'scrypt-ts'
 
-import * as dotenv from 'dotenv'
+;(async () => {
+    const message = toByteString('hello world', true)
 
-// Load the .env file
-dotenv.config()
+    await Helloworld.loadArtifact()
+    const instance = new Helloworld(sha256(message))
 
-// Read the private key from the .env file.
-// The default private key inside the .env file is meant to be used for the Bitcoin testnet.
-// See https://scrypt.io/docs/bitcoin-basics/bsv/#private-keys
-const privateKey = bsv.PrivateKey.fromWIF(process.env.PRIVATE_KEY || '')
+    // connect to a signer
+    await instance.connect(getDefaultSigner())
 
-// Prepare signer.
-// See https://scrypt.io/docs/how-to-deploy-and-call-a-contract/#prepare-a-signer-and-provider
-const signer = new TestWallet(
-    privateKey,
-    new DefaultProvider({
-        network: bsv.Networks.testnet,
-    })
-)
+    // deploy the contract and lock up 42 satoshis in it
+    const deployTx = await instance.deploy(42)
+    console.log('Helloworld contract deployed: ', deployTx.id)
 
-async function main() {
-    await Demo.compile()
-
-    // TODO: Adjust the amount of satoshis locked in the smart contract:
-    const amount = 1
-
-    const instance = new Demo(
-        // TODO: Adjust constructor parameter values:
-        sha256(toByteString('hello world', true))
-    )
-
-    // Connect to a signer.
-    await instance.connect(signer)
-
-    // Contract deployment.
-    const deployTx = await instance.deploy(amount)
-    console.log(`Demo contract deployed: ${deployTx.id}`)
-}
-
-main()
+    // contract call
+    const { tx: callTx } = await instance.methods.unlock(message)
+    console.log('Helloworld contract `unlock` called: ', callTx.id)
+})()
